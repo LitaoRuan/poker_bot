@@ -59,7 +59,10 @@ validity tests pass (`pytest tests/test_model.py`), and `python -m
 submit` reports nothing for the code review to flag.
 
 Tuning (`dev_ab.py`: paired A/B on the same decks): counting the opponent's
-re-raise in a bet's value was kept. Nine other changes were within noise or
+re-raise in a bet's value was kept. Later, a bet margin was added: a bet must beat
+checking or calling by about 3% of the pot. It gains +7 bb/100 against
+equity-style bots, which are almost every bot in the school's forks, and
+costs a little against overbettors. Nine other changes were within noise or
 worse, so they were dropped: bigger opens, more bet sizes, softer ranges,
 less mixing, more flop runouts, faster-adapting priors, a bigger post-flop
 bonus, tighter re-shoves and per-street bet rates.

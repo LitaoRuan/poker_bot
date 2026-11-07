@@ -581,7 +581,10 @@ class Model:
                     eff = min(my_total, opp_total)
                     final = pot + (eff - my_bet) + (eff - opp_bet)
                     ev += r * max(-add, e_r * final - (eff - my_bet))
-                cands.append((ev, "raise", x))
+                # A bet must beat checking or calling by a clear margin:
+                # fewer thin bluffs into the equity bots most teams write.
+                margin = max(0.03 * pot, 0.10 * add * (1 - e_all))
+                cands.append((ev - margin, "raise", x))
         return self._pick(gs, cands)
 
     def _raise_share(self, gs):
