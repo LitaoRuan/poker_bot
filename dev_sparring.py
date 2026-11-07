@@ -238,7 +238,77 @@ class FitFoldBot(_Base):
         return self._fold_or_check(gs)
 
 
+class OverbetBot(_Base):
+    """Bets twice the pot or all-in with strong hands, and bluffs that
+    way 30% of the time; calls with fair equity."""
+
+    def run(self, actions, gs):
+        if gs.street == "preflop":
+            s = _pf_strength(self.hand)
+            if s > 0.6 or (s < 0.4 and self.rng.random() < 0.15):
+                return self._raise(gs, gs.max_raise_to if s > 0.7
+                                   else 3 * gs.current_bet)
+            return self._call() if s > 0.4 else self._fold_or_check(gs)
+        e = _equity(self.hand, gs.board, self.rng)
+        if gs.call_amount == 0:
+            if e > 0.65 or self.rng.random() < 0.3:
+                return self._raise(gs, gs.current_bet + 2 * gs.pot)
+            return self._call()
+        if e > gs.pot_odds + 0.05:
+            return self._call()
+        return PlayerAction.fold(self.player_id)
+
+
+class CheckRaiseBot(_Base):
+    """Checks first, then check-raises all-in with strong hands and big
+    draws; calls medium hands, folds weak ones."""
+
+    def run(self, actions, gs):
+        if gs.street == "preflop":
+            s = _pf_strength(self.hand)
+            if s > 0.66 and gs.call_amount > gs.big_blind / 2:
+                return self._raise(gs, 3 * gs.current_bet)
+            return self._call() if s > 0.42 else self._fold_or_check(gs)
+        e = _equity(self.hand, gs.board, self.rng)
+        if gs.call_amount == 0:
+            return self._call()
+        if e > 0.62:
+            return self._raise(gs, gs.max_raise_to)
+        if e > gs.pot_odds + 0.08:
+            return self._call()
+        return PlayerAction.fold(self.player_id)
+
+
+class LimpTrapBot(_Base):
+    """Limps or checks its best hands preflop, then re-raises all-in;
+    plays the rest by equity."""
+
+    def run(self, actions, gs):
+        if gs.street == "preflop":
+            s = _pf_strength(self.hand)
+            if s > 0.7:
+                if gs.current_bet > gs.big_blind:
+                    return self._raise(gs, gs.max_raise_to)
+                return self._call()
+            if s > 0.5:
+                return (self._raise(gs, 3 * gs.big_blind)
+                        if gs.current_bet <= gs.big_blind else self._call())
+            return self._call() if s > 0.4 and gs.pot_odds < 0.3 else \
+                self._fold_or_check(gs)
+        e = _equity(self.hand, gs.board, self.rng)
+        if gs.call_amount == 0:
+            return (self._raise(gs, gs.pot * 0.75) if e > 0.6
+                    else self._call())
+        if e > 0.75:
+            return self._raise(gs, gs.max_raise_to)
+        return self._call() if e > gs.pot_odds + 0.05 else \
+            PlayerAction.fold(self.player_id)
+
+
 SPARRING = {
+    "overbet": OverbetBot,
+    "checkraise": CheckRaiseBot,
+    "limptrap": LimpTrapBot,
     "trapper": TrapperBot,
     "fitfold": FitFoldBot,
     "example": ExampleBot,

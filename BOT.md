@@ -32,7 +32,9 @@ Files named `dev_*.py` are our tools and are not submitted.
    the flop. Preflop uses the precomputed 169 × 169 table.
 4. **Expected value.** It compares fold, check/call, bets of ⅓, ⅔ and a
    full pot, and all-in. A bet's value is
-   `P(fold)·pot + P(call)·(equity vs the hands that continue·new pot − cost)`.
+   `P(fold)·pot + P(call)·(equity vs the hands that call·new pot − cost)
+   + P(raise)·(the better of folding, or calling off against their raising
+   hands)`.
    When more betting is to come, that equity is scaled down for weak hands
    and up for strong ones, and up when acting last.
    - Exploitation comes from the numbers. No bluffs into calling stations,
@@ -46,14 +48,21 @@ Files named `dev_*.py` are our tools and are not submitted.
 
 ## Results (local, arena format: 300–400 deals × 2 seats per pairing)
 
-Against all 15 practice bots: ahead of every one. That includes the
+Against all 18 practice bots: ahead of every one. That includes the
 repo's dummies (fold, call, random, shove, tight, equity) and our own
 sparring bots in `dev_sparring.py`: README example, tight-aggressive,
 loose-aggressive, all-in-or-fold, smarter equity, min-raiser, calling
-station, slow-player and fit-or-fold. Typical results: +40 to +150 bb/100
-against the sensible ones, +250 to +420 against the weak ones. The
-organisers' validity tests pass (`pytest tests/test_model.py`), and
-`python -m submit` reports nothing for the code review to flag.
+station, slow-player, fit-or-fold, overbettor, check-raiser and
+preflop trapper. Typical results: +50 to +190 bb/100 against the
+sensible ones, +330 to +420 against the weak ones. The organisers'
+validity tests pass (`pytest tests/test_model.py`), and `python -m
+submit` reports nothing for the code review to flag.
+
+Tuning (`dev_ab.py`: paired A/B on the same decks): counting the opponent's
+re-raise in a bet's value was kept. Nine other changes were within noise or
+worse, so they were dropped: bigger opens, more bet sizes, softer ranges,
+less mixing, more flop runouts, faster-adapting priors, a bigger post-flop
+bonus, tighter re-shoves and per-street bet rates.
 
 ## Commands
 
@@ -62,5 +71,6 @@ organisers' validity tests pass (`pytest tests/test_model.py`), and
 .venv/bin/python -m evals --deals 1000               # vs the dummies
 .venv/bin/python dev_tourney.py 300 --seeds 2        # vs every sparring bot
 .venv/bin/python dev_strategy.py                     # default preflop play
+.venv/bin/python dev_ab.py <module> --seeds 6        # A/B vs dev_model_baseline
 .venv/bin/python -m submit --team <team>             # make <team>.pkl
 ```

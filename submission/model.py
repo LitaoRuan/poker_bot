@@ -570,12 +570,25 @@ class Model:
                 their_add = matched - opp_bet
                 allin = x >= my_total or matched >= opp_total
                 f = self._fold_prob(gs, x, allin)
-                e_c = self._slice(live, heq, q, f, 1.0, e_all)
+                r = 0.0 if allin else (1 - f) * self._raise_share(gs)
+                e_c = self._slice(live, heq, q, f, 1.0 - r, e_all)
                 newpot = pot + add + their_add
                 mult = 1.0 if (allin or river) else _realize(e_c, ip)
-                ev = f * pot + (1 - f) * (mult * e_c * newpot - add)
+                ev = f * pot + (1 - f - r) * (mult * e_c * newpot - add)
+                if r > 0.0:
+                    # They raise (treated as all-in): we call or fold.
+                    e_r = self._slice(live, heq, q, 1.0 - r, 1.0, e_all)
+                    eff = min(my_total, opp_total)
+                    final = pot + (eff - my_bet) + (eff - opp_bet)
+                    ev += r * max(-add, e_r * final - (eff - my_bet))
                 cands.append((ev, "raise", x))
         return self._pick(gs, cands)
+
+    def _raise_share(self, gs):
+        """Of the times they do not fold to our bet, how often they raise."""
+        ctx = "post_vs_raise" if gs.call_amount > 0 else "post_vs_bet"
+        _, call, rais = self._probs(ctx)
+        return rais / max(1e-9, call + rais)
 
     def _sizes(self, gs):
         me = self.player_id
